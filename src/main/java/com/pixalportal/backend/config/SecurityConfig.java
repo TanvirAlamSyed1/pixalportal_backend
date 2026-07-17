@@ -1,82 +1,110 @@
 package com.pixalportal.backend.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.security.oauth2.jose.jws.JwsAlgorithms;
+ import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm; // Make sure this is imported
 
-import javax.crypto.spec.SecretKeySpec;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // This grabs the secret key we defined in application.yml
-    @Value("${supabase.jwt.secret}")
-    private String jwtSecret;
+    /**
+     * Creates the decoder that validates the HS256 JWTs using your Supabase secret.
+     */
+   @Value("${supabase.url}")
+    private String supabaseUrl;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 1. Enable Cross-Origin Resource Sharing (CORS) so localhost:3000 can talk to it
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // 2. Disable CSRF since we are building a stateless, token-based API
-            .csrf(csrf -> csrf.disable()) 
-            
-            // 3. Define the authorization rules for your endpoints
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/public/**").permitAll() // Open endpoints
-                .anyRequest().authenticated() // All other endpoints require a valid JWT
+                // Explicitly permit all preflight requests
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/api/public/**").permitAll()
+                .anyRequest().authenticated()
             )
-            
-            // 4. Configure Spring to act as an OAuth2 Resource Server using JWTs
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.decoder(jwtDecoder()))
             );
-
         return http.build();
     }
 
-    /**
-     * Creates the decoder that validates the HS256 JWTs using your Supabase secret.
-     */
+
     @Bean
     public JwtDecoder jwtDecoder() {
-        // Supabase uses HS256, which maps to HmacSHA256 in Java
-        SecretKeySpec secretKey = new SecretKeySpec(jwtSecret.getBytes(), "HmacSHA256");
+        String jwksUri = supabaseUrl + "/auth/v1/.well-known/jwks.json";
         
-        // Build and return the decoder configured with your symmetric key
-        return NimbusJwtDecoder.withSecretKey(secretKey).build();
+        // Use SignatureAlgorithm.ES256
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwksUri)
+                .jwsAlgorithm(SignatureAlgorithm.ES256) 
+                .build();
+                
+        return jwtDecoder;
     }
 
     /**
      * Configures CORS to explicitly allow requests from your Next.js application.
      */
-    @Bean
+  @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow your Next.js frontend origin
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        // Explicitly allow your origins
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "http://192.168.68.117:3000"));
         
-        // Allow the standard HTTP methods
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Crucial: Allow OPTIONS so preflight requests succeed
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
         
-        // Allow the Authorization header (which carries the token) and Content-Type
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Crucial: Explicitly list the header
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
+        
+        configuration.setAllowCredentials(true);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Apply this CORS configuration to all paths
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public FilterRegistrationBean<OncePerRequestFilter> loggingFilter() {
+        FilterRegistrationBean<OncePerRequestFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new OncePerRequestFilter() {
+            @Override
+            protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) 
+                throws ServletException, IOException {
+                
+                System.out.println(">>> REQ: " + request.getMethod() + " " + request.getRequestURI());
+                System.out.println(">>> AUTH HEADER: " + request.getHeader("Authorization"));
+                
+                filterChain.doFilter(request, response);
+            }
+        });
+        return registrationBean;
     }
 }
