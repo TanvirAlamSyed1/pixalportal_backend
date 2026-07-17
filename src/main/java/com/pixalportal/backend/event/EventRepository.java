@@ -7,8 +7,6 @@ import java.util.UUID;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, UUID> {
-    
-    // Spring Boot automatically translates this method name into a SQL query:
-    // SELECT * FROM "Event" WHERE "CreatedByUserID" = ?
+    // This matches the field name 'createdByUserId' in your Event entity
     List<Event> findByCreatedByUserId(UUID createdByUserId);
 }
