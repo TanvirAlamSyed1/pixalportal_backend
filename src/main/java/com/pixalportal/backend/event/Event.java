@@ -1,127 +1,92 @@
 package com.pixalportal.backend.event;
 
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
+import org.hibernate.annotations.Type;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 
 @Entity
-@Table(name = "\"Event\"") // Escaped quotes force PostgreSQL to look for the capital 'E'
+@Table(name = "event") // Standard lowercase table name
 public class Event {
 
-   @Id
+    @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "\"EventID\"", updatable = false, nullable = false)
+    @Column(name = "event_id", updatable = false, nullable = false)
     private UUID eventId;
 
-    @Column(name = "\"CreatedByUserID\"", nullable = false)
-    private UUID createdByUserId; // Use camelCase here
+    @Column(name = "created_by_user_id", nullable = false)
+    private UUID createdByUserId;
 
-    @Column(name = "\"Name\"", nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "\"StartDate\"")
-    private LocalDateTime startDate; // Or OffsetDateTime if time zone precision is critical
+    @Column(name = "start_date")
+    private LocalDate startDate;
 
-    @Column(name = "\"EndDate\"")
-    private LocalDateTime endDate;
+    @Column(name = "end_date")
+    private LocalDate endDate;
 
-    @Column(name = "\"Address\"")
+    @Column(name = "address")
     private String address;
 
-    @Column(name = "\"Postcode\"")
+    @Column(name = "postcode")
     private String postcode;
 
-    @Column(name = "\"MapURL\"")
-    private String mapURL;
+    @Column(name = "map_url")
+    private String mapUrl;
 
-    @Column(name = "\"Description\"")
+    @Column(name = "description")
     private String description;
     
-    @Column(name = "\"S3FolderCreated\"")
+    @Column(name = "s3_folder_created")
     private Boolean s3FolderCreated = false;
 
-    // Standard no-argument constructor required by JPA
+    @Type(JsonType.class)
+    @Column(name = "priority_list", columnDefinition = "jsonb")
+    private List<String> priorityList;
+
+    // Constructor
     public Event() {}
 
-    // --- Getters and Setters ---
-    
-    public UUID getEventId() { 
-        return eventId; 
-    }
-    
-    public void setEventId(UUID eventId) { 
-        this.eventId = eventId; 
-    }
+    // Getters and Setters
+    public UUID getEventId() { return eventId; }
+    public void setEventId(UUID eventId) { this.eventId = eventId; }
 
-   public UUID getCreatedByUserId() {
-    return createdByUserId;
-    }
+    public UUID getCreatedByUserId() { return createdByUserId; }
+    public void setCreatedByUserId(UUID createdByUserId) { this.createdByUserId = createdByUserId; }
 
-    public void setCreatedByUserId(UUID createdByUserId) {
-        this.createdByUserId = createdByUserId;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getName() { 
-        return name; 
-    }
-    
-    public void setName(String name) { 
-        this.name = name; 
-    }
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
 
-    public LocalDateTime getStartDate() { 
-        return startDate; 
-    }
-    
-    public void setStartDate(LocalDateTime startDate) { 
-        this.startDate = startDate; 
-    }
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
 
-    public LocalDateTime getEndDate() { 
-        return endDate; 
-    }
-    
-    public void setEndDate(LocalDateTime endDate) { 
-        this.endDate = endDate; 
-    }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 
-    public String getAddress() { 
-        return address; 
-    }
-    
-    public void setAddress(String address) { 
-        this.address = address; 
-    }
+    public String getPostcode() { return postcode; }
+    public void setPostcode(String postcode) { this.postcode = postcode; }
 
-    public String getPostcode() { 
-        return postcode; 
-    }
-    
-    public void setPostcode(String postcode) { 
-        this.postcode = postcode; 
-    }
+    public String getMapUrl() { return mapUrl; }
+    public void setMapUrl(String mapUrl) { this.mapUrl = mapUrl; }
 
-    public String getMapUrl() { 
-        return mapURL; 
-    }
-    
-    public void setMapUrl(String mapUrl) { 
-        this.mapURL = mapUrl; 
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public String getDescription() { 
-        return description; 
-    }
-    
-    public void setDescription(String description) { 
-        this.description = description; 
-    }
+    public Boolean getS3FolderCreated() { return s3FolderCreated; }
+    public void setS3FolderCreated(Boolean s3FolderCreated) { this.s3FolderCreated = s3FolderCreated; }
 
-    public Boolean getS3FolderCreated() { 
-        return s3FolderCreated; 
-    }
-    
-    public void setS3FolderCreated(Boolean s3FolderCreated) { 
-        this.s3FolderCreated = s3FolderCreated; 
-    }
+    public List<String> getPriorityList() { return priorityList; }
+    public void setPriorityList(List<String> priorityList) { this.priorityList = priorityList; }
 }

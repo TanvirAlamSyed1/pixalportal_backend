@@ -57,7 +57,7 @@ public class EventService {
         return eventRepository.findById(id);
     }
 
-    // PUT request support
+   // PUT request support
     public Optional<Event> updateEvent(UUID id, Event updatedEvent, UUID userId) {
         return eventRepository.findById(id).map(existingEvent -> {
             // Authorisation check: ensure the user actually owns this event
@@ -65,7 +65,7 @@ public class EventService {
                 throw new SecurityException("Unauthorised modification attempt."); 
             }
             
-            // Update the permissible fields (do not overwrite IDs or S3 flags)
+            // Update the permissible fields
             existingEvent.setName(updatedEvent.getName());
             existingEvent.setStartDate(updatedEvent.getStartDate());
             existingEvent.setEndDate(updatedEvent.getEndDate());
@@ -73,6 +73,9 @@ public class EventService {
             existingEvent.setPostcode(updatedEvent.getPostcode());
             existingEvent.setMapUrl(updatedEvent.getMapUrl());
             existingEvent.setDescription(updatedEvent.getDescription());
+            
+            // --- NEW: Update the priority list ---
+            existingEvent.setPriorityList(updatedEvent.getPriorityList());
             
             return eventRepository.save(existingEvent);
         });
