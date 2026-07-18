@@ -42,6 +42,11 @@
 	</dependencyManagement>
 	<dependencies>
 		<dependency>
+			<groupId>com.giffing.bucket4j.spring.boot.starter</groupId>
+			<artifactId>bucket4j-spring-boot-starter</artifactId>
+			<version>0.12.0</version> <!-- Check for the latest version -->
+		</dependency>
+		<dependency>
     		<groupId>software.amazon.awssdk</groupId>
     		<artifactId>s3</artifactId>
 		</dependency>
