@@ -3,11 +3,18 @@ package com.pixalportal.backend.event;
 import org.springframework.stereotype.Service;
 import com.pixalportal.backend.storage.StorageService;
 
+import jakarta.transaction.Transactional;
+
+import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class EventService {
+    private static final Logger logger = LoggerFactory.getLogger(EventService.class);
+    // ...
 
     private final EventRepository eventRepository;
     private final StorageService storageService;
@@ -44,4 +51,56 @@ public class EventService {
     public List<Event> getUserEvents(UUID userId) {
         return eventRepository.findByCreatedByUserId(userId);
     }
+
+    // GET request support
+    public Optional<Event> findById(UUID id) {
+        return eventRepository.findById(id);
+    }
+
+    // PUT request support
+    public Optional<Event> updateEvent(UUID id, Event updatedEvent, UUID userId) {
+        return eventRepository.findById(id).map(existingEvent -> {
+            // Authorisation check: ensure the user actually owns this event
+            if (!existingEvent.getCreatedByUserId().equals(userId)) {
+                throw new SecurityException("Unauthorised modification attempt."); 
+            }
+            
+            // Update the permissible fields (do not overwrite IDs or S3 flags)
+            existingEvent.setName(updatedEvent.getName());
+            existingEvent.setStartDate(updatedEvent.getStartDate());
+            existingEvent.setEndDate(updatedEvent.getEndDate());
+            existingEvent.setAddress(updatedEvent.getAddress());
+            existingEvent.setPostcode(updatedEvent.getPostcode());
+            existingEvent.setMapUrl(updatedEvent.getMapUrl());
+            existingEvent.setDescription(updatedEvent.getDescription());
+            
+            return eventRepository.save(existingEvent);
+        });
+    }
+
+    @Transactional
+    public boolean deleteEvent(UUID id, UUID userId) {
+        return eventRepository.findById(id).map(existingEvent -> {
+            // Authorisation check
+            if (!existingEvent.getCreatedByUserId().equals(userId)) {
+                logger.warn("Unauthorised deletion attempt for event ID: {} by user: {}", id, userId);
+                throw new SecurityException("Unauthorised deletion attempt.");
+            }
+
+            // Attempt to clean up associated S3 resources
+            try {
+                storageService.deleteEventFolder(existingEvent.getEventId());
+                logger.info("Successfully deleted S3 folder for event: {}", id);
+            } catch (Exception e) {
+                // Log failure but proceed with database deletion to avoid blocking the removal of the record
+                logger.error("Failed to delete S3 folder for event: {}. Manual cleanup may be required.", id, e);
+            }
+
+            eventRepository.delete(existingEvent);
+            logger.info("Successfully deleted event record: {}", id);
+            return true;
+        }).orElse(false);
+    }
+
+    
 }
