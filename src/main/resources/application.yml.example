@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    # The JDBC formatted URL pointing to your new pooler
+    url:
+    
+    # Your specific user and project reference
+    username: 
+    
+    # Put your real password here (no percent-encoding required)
+    password: 
+
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  
+jackson:
+  serialization:
+    write-dates-as-timestamps: false
+
+supabase:
+  url:
+
+aws:
+  s3:
+    access-key: 
+    secret-key: 
+    region: eu-west-2
+    bucket-name: pixalportal-bucket
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+        security.oauth2: DEBUG
